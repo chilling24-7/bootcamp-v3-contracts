@@ -85,12 +85,51 @@ describe("Token", () => {
            const { token, deployer, receiver } = await loadFixture(deployTokenFixture) 
 
            const INVALID_ADDRESS = "0x0000000000000000000000000000000000000000"
-           const ERROR = "Token:Recipient is address 0"
+           const ERROR = "Token: Recipient is address 0"
 
            await expect(token.connect(deployer).transfer(INVALID_ADDRESS, AMOUNT))
            .to.be.revertedWith(ERROR)
 
             })
+        })
+    })
+
+    describe("Approving Tokens", () => {
+        const AMOUNT = tokens(100)
+        
+        describe("Success", async () => {
+
+           it("Allocates an allowance for delegated token spending", async () => {
+                const { token, deployer, exchange } = await loadFixture(deployTokenFixture) 
+
+                const transaction = await token.connect(deployer).approve(exchange.address, AMOUNT)
+                await transaction.wait()
+
+                expect(await token.allowance(deployer.address, exchange.address)).to.equal(AMOUNT)
+           })
+           
+           it("emits an Approval event", async () => {
+            const { token, deployer, exchange } = await loadFixture(deployTokenFixture) 
+
+            const transaction = await token.connect(deployer).approve(exchange.address, AMOUNT)
+            await transaction.wait()
+            
+            await expect(transaction).to.emit(token, "Approval")
+            .withArgs(deployer.address, exchange.address, AMOUNT)
+            })
+        })
+
+        describe("Failure", () => {
+
+          it("Rejects invalid Spenders", async () => {
+          const { token, deployer } = await loadFixture(deployTokenFixture) 
+
+          const INVALID_ADDRESS = "0x0000000000000000000000000000000000000000"
+          const ERROR = "Token: Recipient is address 0"
+
+          await expect(token.connect(deployer).approve(INVALID_ADDRESS, AMOUNT))
+          .to.be.revertedWith(ERROR)
+          })
         })
     })
 })
