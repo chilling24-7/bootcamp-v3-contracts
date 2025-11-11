@@ -12,9 +12,9 @@ describe("Token", () => {
     describe("Deployment", () => {
 
         const NAME = "Dapp University"
-    const SYMBOL = "DAPP"
-    const DECIMALS = 18
-    const TOTAL_SUPPLY = (tokens(1000000))
+        const SYMBOL = "DAPP"
+        const DECIMALS = 18
+        const TOTAL_SUPPLY = (tokens(1000000))
 
     it("Has correct Name", async () => {
         const { token } = await loadFixture(deployTokenFixture)
