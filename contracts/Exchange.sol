@@ -11,6 +11,7 @@ contract Exchange {
 
     // Mappings
     mapping(uint256 => Order) public orders;
+    mapping(uint256 => bool) public isOrderCancelled;
 
     //Total Tokens belonging to a user
     mapping(address => mapping(address => uint256)) private userTotalTokenBalance;
@@ -23,6 +24,16 @@ contract Exchange {
     event tokensWithdrawn(address token, address user, uint256 amount, uint256 balance);
 
     event OrderCreated(
+        uint256 id, // Unique identifier for order
+        address user, // User who made Order
+        address tokenGet, // Address of the token they recieve
+        uint256 amountGet, // Amount they recieve
+        address tokenGive, // Address of token they give
+        uint256 amountGive, // Amount they give 
+        uint256 timestamp // When the order was created 
+    );
+
+    event OrderCancelled(
         uint256 id, // Unique identifier for order
         address user, // User who made Order
         address tokenGet, // Address of the token they recieve
@@ -119,6 +130,33 @@ contract Exchange {
             _amountGet,
             _tokenGive,
             _amountGive,
+            block.timestamp
+        );
+    }
+    function cancelOrder(uint256 _id) public {
+        // Fetch the order
+        Order storage order = orders[_id];
+
+        // Order must exist
+        require(order.id == _id, "Exchange: Order does not exist");
+
+        // Ensure the caller of the function is the owner of the order
+        require(address(order.user) == msg.sender, "Exchange: NOT the Owner");
+
+        // Cancel the order
+        isOrderCancelled[_id] = true;
+
+        // Update the Active Balance
+        userActiveTokenBalance[order.tokenGive][order.user] -= order.amountGive;
+
+        // Emit the event
+        emit OrderCancelled(
+            order.id,
+            msg.sender,
+            order.tokenGet,
+            order.amountGet,
+            order.tokenGive,
+            order.amountGive,
             block.timestamp
         );
     }
