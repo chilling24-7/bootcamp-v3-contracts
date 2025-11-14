@@ -49,7 +49,27 @@ async function depositExchangeFixture(){
 
 }
 
+async function orderExchangeFixture() {
+    const { tokens, exchange, accounts } = await depositExchangeFixture()
+
+    const AMOUNT = ethers.parseUnits("1", 18)
+
+    // Make order
+    //We need the tranactionj variable to test in unit test
+    const transaction = await exchange.connect(accounts.user1).makeOrder(
+        await tokens.token1.getAddress(),
+        AMOUNT,
+        await tokens.token0.getAddress(),
+        AMOUNT
+    )
+    await transaction.wait()
+
+    return {tokens, exchange, accounts, transaction }
+
+}
+
 module.exports = {
     deployExchangeFixture,
-    depositExchangeFixture
+    depositExchangeFixture,
+    orderExchangeFixture
 }
