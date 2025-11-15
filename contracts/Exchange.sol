@@ -12,6 +12,7 @@ contract Exchange {
     // Mappings
     mapping(uint256 => Order) public orders;
     mapping(uint256 => bool) public isOrderCancelled;
+    mapping(uint256 => bool) public isOrderFilled;
 
     //Total Tokens belonging to a user
     mapping(address => mapping(address => uint256)) private userTotalTokenBalance;
@@ -40,6 +41,17 @@ contract Exchange {
         uint256 amountGet, // Amount they recieve
         address tokenGive, // Address of token they give
         uint256 amountGive, // Amount they give 
+        uint256 timestamp // When the order was created 
+    );
+
+    event OrderFilled(
+        uint256 id, // Unique identifier for order
+        address user, // User who made Order
+        address tokenGet, // Address of the token they recieve
+        uint256 amountGet, // Amount they recieve
+        address tokenGive, // Address of token they give
+        uint256 amountGive, // Amount they give 
+        address creator,
         uint256 timestamp // When the order was created 
     );
 
@@ -157,6 +169,80 @@ contract Exchange {
             order.amountGet,
             order.tokenGive,
             order.amountGive,
+            block.timestamp
+        );
+    }
+
+    // Executing Orders
+
+    function fillOrder(uint256 _id) public {
+        // Verify if the order is Valid
+        require(_id > 0 && _id <= orderCount, "Exchange: Order does not Exist");
+
+        // Verify that the Order cannot be filled
+        require(!isOrderFilled[_id], "Exchange: Order has already been filled");
+
+        // Order cannot be cancelled
+        require(!isOrderCancelled[_id], "Exchange: Order has been canceled");
+
+        // Fetch the Order
+        Order storage order = orders[_id];
+
+        // Prevent filling if msg.sender already has thier tokens listed
+        require(
+            totalBalanceOf(order.tokenGet, msg.sender) >=
+                activeBalanceOf(order.tokenGet, msg.sender) + order.amountGet,
+            "Exchange: Insufficient balance"
+        );
+
+        // Execute the trade
+        _trade(
+            order.id,
+            order.user,
+            order.tokenGet,
+            order.amountGet,
+            order.tokenGive,
+            order.amountGive
+        );
+
+        // Mark Order as Filled
+        isOrderFilled[order.id] = true;
+    }
+
+    function _trade(
+        uint256 _orderId,
+        address _user,
+        address _tokenGet,
+        uint256 _amountGet,
+        address _tokenGive,
+        uint256 _amountGive
+    ) internal {
+        // Fee from Trade, paid by the user who filled the order
+        uint256 _feeAmount = (_amountGet * feePercent) / 100;
+
+        //Let User who created the order get thier tokens
+         userTotalTokenBalance[_tokenGet][msg.sender] -= (_amountGet + _feeAmount);
+         userTotalTokenBalance[_tokenGet][_user] += _amountGet;
+
+        // Charge fees
+        userTotalTokenBalance[_tokenGet][feeAccount] += _feeAmount;
+
+         // Give the requested token to msg.sender, and minuse token balance from the user
+         userTotalTokenBalance[_tokenGive][_user] -= _amountGive;
+         userTotalTokenBalance[_tokenGive][msg.sender] += _amountGive;
+
+        // Updates users active token balance
+        userActiveTokenBalance[_tokenGive][_user] -= _amountGive;
+
+        // Emit event
+        emit OrderFilled(
+            _orderId,
+            msg.sender,
+            _tokenGet,
+            _amountGet,
+            _tokenGive,
+            _amountGive,
+            _user,
             block.timestamp
         );
     }
