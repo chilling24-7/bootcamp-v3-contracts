@@ -1,5 +1,5 @@
 require("@nomicfoundation/hardhat-toolbox");
-const { vars } = require("hardhat/config");
+const { vars } = require('hardhat/config);
 
 const TENDERLY_API_KEY = vars.get("TENDERLY_API_KEY")
 const DEPLOYER_PRIVATE_KEY = vars.get("DEPLOYER_PRIVATE_KEY")
